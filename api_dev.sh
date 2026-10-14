@@ -136,12 +136,12 @@ info "Lancement du serveur Uvicorn en mode développement (--reload)..."
 cd "${BACKEND_DIR}"
 
 # Démarrage de Uvicorn avec rechargement automatique sur modification
-# --host 0.0.0.0 rend le serveur accessible depuis l'extérieur de la machine
+# --host 127.0.0.1 rend le serveur accessible depuis l'extérieur de la machine
 # --port 8000 définit le port d'écoute standard pour FastAPI
 # --reload active le rechargement à chaud en développement
 # --reload-dir limite la surveillance aux fichiers du backend uniquement
 uvicorn main:app \
-    --host 0.0.0.0 \
+    --host 127.0.0.1 \
     --port 8000 \
     --reload \
     --reload-dir "${BACKEND_DIR}"

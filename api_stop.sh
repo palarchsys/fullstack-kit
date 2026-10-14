@@ -130,7 +130,7 @@ echo " Vérifications :"
 
 # Test si Uvicorn est bien arrêté : une requête curl doit échouer
 # Pourquoi : confirme que le backend n'est plus accessible directement
-curl http://0.0.0.0:8000 >/dev/null 2>&1 && echo " Uvicorn     : ÉCHEC (encore actif)" || echo " Uvicorn     : OK (arrêté)"
+curl http://127.0.0.1:8000 >/dev/null 2>&1 && echo " Uvicorn     : ÉCHEC (encore actif)" || echo " Uvicorn     : OK (arrêté)"
 
 # Test si le service Nginx reste actif après redémarrage
 systemctl is-active nginx >/dev/null && echo " Nginx       : OK (actif)" || echo " Nginx       : ÉCHEC"
@@ -148,8 +148,8 @@ echo ""
 echo " Uvicorn a été arrêté et Nginx redémarré."
 echo ""
 echo " Test rapide :"
-printf " %-24s : %s\n" "curl http://0.0.0.0:8000" "Devrait retourner 'Error'"
-echo " Réponse : $(curl http://0.0.0.0:8000 2>/dev/null || echo 'Error')"
+printf " %-24s : %s\n" "curl http://127.0.0.1:8000" "Devrait retourner 'Error'"
+echo " Réponse : $(curl http://127.0.0.1:8000 2>/dev/null || echo 'Error')"
 echo ""
 echo "════════════════════════════════════════════════════════════"
 echo ""

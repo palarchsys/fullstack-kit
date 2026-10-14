@@ -165,13 +165,12 @@ confirm_push
 # Information sur le chargement des credentials
 info "Lecture des paramètres GitHub..."
 GIT_USER=$(get_config_value user)
-GIT_TOKEN=$(get_config_value token)
 GIT_NAME=$(get_config_value name "ArchKitty")
 GIT_EMAIL=$(get_config_value email "chaton.garou@gmail.com")
 
-# Nom du projet et URL du remote avec token
+# Nom du projet et URL du remote, sans jeton.
 PROJECT_NAME="$(basename "$SCRIPT_DIR")"
-REMOTE_URL="https://$GIT_USER:$GIT_TOKEN@github.com/$GIT_USER/$PROJECT_NAME.git"
+REMOTE_URL="https://github.com/$GIT_USER/$PROJECT_NAME.git"
 
 # Confirmation du chargement
 success "Paramètres GitHub chargés pour $GIT_USER"

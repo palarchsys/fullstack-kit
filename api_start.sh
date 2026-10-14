@@ -106,7 +106,7 @@ cd "$BACKEND_DIR"
 
 # Lancement de Uvicorn en arrière-plan
 # Pourquoi : & pour détacher le processus et permettre la suite du script
-if uvicorn main:app --host 0.0.0.0 --port 8000 >/dev/null 2>&1 & then
+if uvicorn main:app --host 127.0.0.1 --port 8000 >/dev/null 2>&1 & then
     success "Serveur Uvicorn démarré en arrière-plan"
 else
     error "Échec du démarrage de Uvicorn"
@@ -135,7 +135,7 @@ echo " Vérifications :"
 
 # Test si Uvicorn répond sur son port direct
 # Pourquoi : vérifie que le processus backend est bien accessible
-curl http://0.0.0.0:8000 >/dev/null 2>&1 && echo " Uvicorn     : OK (répond)" || echo " Uvicorn     : ÉCHEC"
+curl http://127.0.0.1:8000 >/dev/null 2>&1 && echo " Uvicorn     : OK (répond)" || echo " Uvicorn     : ÉCHEC"
 
 # Test si le service Nginx est actif
 # Pourquoi : confirme que le reverse proxy est opérationnel
@@ -154,8 +154,8 @@ echo ""
 echo " Le serveur FastAPI (Uvicorn) est lancé et Nginx redémarré."
 echo ""
 echo " Test rapide :"
-printf " %-24s : %s\n" "curl http://0.0.0.0:8000" "Devrait retourner une réponse valide"
-echo " Réponse : $(curl http://0.0.0.0:8000 2>/dev/null || echo 'Erreur de connexion')"
+printf " %-24s : %s\n" "curl http://127.0.0.1:8000" "Devrait retourner une réponse valide"
+echo " Réponse : $(curl http://127.0.0.1:8000 2>/dev/null || echo 'Erreur de connexion')"
 echo ""
 echo "════════════════════════════════════════════════════════════"
 echo ""

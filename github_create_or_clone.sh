@@ -6,7 +6,7 @@
 # Date de modification: 14 décembre 2025
 # Description         : Crée un dépôt privé GitHub si inexistant ou clone le dépôt
 #                       existant, initialise Git localement et effectue le premier
-#                       push avec les identifiants configurés dans github.ini.
+#                       push via le trousseau Git, sans jeton dans l'URL.
 # ------------------------------------------------------------------------------
 
 # Activation des options strictes pour une exécution robuste et sécurisée
@@ -157,7 +157,6 @@ info "Lecture des paramètres GitHub depuis github.ini..."
 
 # Extraction sécurisée des valeurs requises
 GIT_USER=$(get_config_value "$CONFIG_PROJECT" Github user)
-GIT_TOKEN=$(get_config_value "$CONFIG_PROJECT" Github token)
 GIT_NAME=$(get_config_value "$CONFIG_PROJECT" Github name)
 GIT_EMAIL=$(get_config_value "$CONFIG_PROJECT" Github email)
 
@@ -171,9 +170,8 @@ success "Paramètres GitHub chargés pour l'utilisateur $GIT_USER"
 # Information sur la vérification distante
 info "Vérification de l'existence du dépôt GitHub $PROJECT_NAME..."
 
-# Test d'existence via l'API GitHub (succès si code 200)
-if curl -f -s -u "$GIT_USER:$GIT_TOKEN" \
-    "https://api.github.com/repos/$GIT_USER/$PROJECT_NAME" >/dev/null; then
+# Test d'existence via gh (succès si le dépôt répond)
+if gh api --silent "repos/$GIT_USER/$PROJECT_NAME"; then
 
     # Cas : dépôt existant → procédure de clonage
     info "Dépôt existant détecté → clonage en cours..."
@@ -183,7 +181,7 @@ if curl -f -s -u "$GIT_USER:$GIT_TOKEN" \
     # Clonage temporaire pour récupérer uniquement le répertoire .git
     mkdir -p .tmp_clone
     GIT_TERMINAL_PROMPT=0 git clone --quiet \
-        "https://$GIT_USER:$GIT_TOKEN@github.com/$GIT_USER/$PROJECT_NAME.git" .tmp_clone
+        "https://github.com/$GIT_USER/$PROJECT_NAME.git" .tmp_clone
 
     mv .tmp_clone/.git .
     rm -rf .tmp_clone
@@ -202,11 +200,8 @@ else
     # Création du dépôt privé via l'API GitHub
     info "Dépôt inexistant → création d'un dépôt privé sur GitHub..."
 
-    curl -u "$GIT_USER:$GIT_TOKEN" https://api.github.com/user/repos -d '{
-        "name": "'"$PROJECT_NAME"'",
-        "private": true,
-        "description": "Projet créé automatiquement via github_create_or_clone.sh"
-    }' >/dev/null 2>&1
+    gh repo create "$GIT_USER/$PROJECT_NAME" --private \
+        --description "Projet créé automatiquement via github_create_or_clone.sh" >/dev/null
 
     success "Dépôt GitHub privé créé avec succès"
 
@@ -224,9 +219,9 @@ else
     export GIT_COMMITTER_NAME="$GIT_NAME"
     export GIT_COMMITTER_EMAIL="$GIT_EMAIL"
 
-    # Ajout du remote avec authentification intégrée
-    git remote add origin "https://$GIT_USER:$GIT_TOKEN@github.com/$GIT_USER/$PROJECT_NAME.git" \
-        2>/dev/null || git remote set-url origin "https://$GIT_USER:$GIT_TOKEN@github.com/$GIT_USER/$PROJECT_NAME.git"
+    # Ajout du remote, sans jeton dans l'URL
+    git remote add origin "https://github.com/$GIT_USER/$PROJECT_NAME.git" \
+        2>/dev/null || git remote set-url origin "https://github.com/$GIT_USER/$PROJECT_NAME.git"
 
     git add .
     git commit --quiet --author="$GIT_NAME <$GIT_EMAIL>" -m "Initial commit"

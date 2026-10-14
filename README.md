@@ -1,171 +1,114 @@
-# Fullstack-Kit
+# Forge orchestrateur
 
-Kit de développement et de déploiement complet pour applications web full-stack modernes, conçu pour être simple, reproductible et sécurisé.
+Grok ne lit pas ce README. Il lit `AGENTS.md` du projet lancé. `grok inspect` doit le lister.
 
-Ce projet fournit une structure prête à l'emploi avec :
-- **Backend** : FastAPI (Python) dans un environnement Conda dédié
-- **Frontend** : Vue.js, React ou Vite (via npm)
-- **Base de données** : PostgreSQL
-- **Cache / sessions** : Redis
-- **Reverse proxy** : Nginx
-- **Gestion GitHub** : Création/clonage automatique de dépôt, push/pull
-
-Tous les outils sont installés et configurés automatiquement via des scripts Bash.
-
-## Structure du projet
-
-Après création d’un nouveau projet avec `create_project.sh` :
+La racine de ce dépôt est le protocole. Grok n'y écrit pas. Chemins, fichiers et commandes sont en anglais.
 
 ```
-mon_projet/
-│
-├── backend/
-│   ├── conda/              # Environnement Conda dédié
-│   ├── main.py             # Application FastAPI
-│   ├── backend.config.json         # Configuration de base
-│   └── requirements.txt
-│
-├── frontend/
-│   ├── src/
-│   ├── dist/               # Généré par npm run build
-│   ├── package.json
-│   └── App.vue
-│
-├── github.ini             # Généré automatiquement (a complèter)
-├── nginx.conf              # Configuration NGNIX chargé par defaut
-├── .gitignore
-│
-├── api_dev.sh
-├── api_start.sh
-├── api_stop.sh
-│
-├── github_create_or_clone.sh
-├── github_push.sh
-├── github_pull.sh
-│
-├── launch_dev.sh
-├── launch_test_prod.sh
-│
-├── install_packages.sh
-├── nginx_reload.sh
-
-├── npm_dev.sh
-└── npm_dist_generate.sh
+herdr-grok-base/
+  AGENTS.md
+  README.md
+  formats/
+  rules/
+  projects/
+    <name>/
+      AGENTS.md
+      formats/
+      rules/
+        AGENT-0-SQL.md
+        AGENT-1-MD.md
+      requests/
+      configs/sources/
+      agents/closed/
+      modules/
+      src/
+      registry.sqlite
 ```
 
-## Prérequis système
+## Installation de base
 
-- Ubuntu / Debian (testé sur Ubuntu 24.04+)
-- Accès root (sudo)
-- Connexion internet
-
-## Installation initiale du kit (une seule fois)
-Modifier les fichiers install_softwares.ini et nginx.conf avec vos paramètres.
-```bash
-# Cloner le kit
-git clone https://github.com/votre-user/fullstack-kit.git
-cd fullstack-kit
-
-# Rendre les scripts exécutables
-chmod +x *.sh
-
-# Installer tous les logiciels nécessaires (Miniconda, PostgreSQL, Redis, Nginx, Node.js…)
-sudo ./install_softwares.sh
-```
-
-Le script demande confirmation à chaque étape critique et nettoie les installations précédentes.
-
-## Création d’un nouveau projet
-
-Remplir le fichier github.ini avec vos paramètres GITHUB.
+Ubuntu 26.04 uniquement.
 
 ```bash
-# Depuis le répertoire du kit
-sudo ./create_project.sh
+bash scripts/install.sh
 ```
 
-Le script interactif vous demande :
-- Nom du projet (en minuscules)
-- Version Python souhaitée
-- Mot de passe PostgreSQL
+Le script saute une étape déjà faite. Il n'écrit pas `config.toml`. Si `herdr integration status` ne montre pas `grok: current`, il installe le hook dans `~/.grok/hooks/`.
 
-Il crée automatiquement :
-- Le répertoire projet dans le dossier configuré dans `install_softwares.ini`
-- Les environnements Conda et npm
-- L’utilisateur et la base PostgreSQL
-- Le dépôt GitHub privé (ou clone si existant)
-- Les liens symboliques vers tous les scripts du kit
+Sans droit root, `sqlite3`, `rg` et `ast-grep` sont installés dans `~/.local/bin`. `curl`, `unzip` et les certificats demandent encore root.
 
-## Utilisation quotidienne
+## Outils Ubuntu 26.04
 
-### Développement (hot-reload)
+Installés par le script s'ils manquent : `sqlite3`, `rg` (`ripgrep`), `ast-grep`.
+
+`ast-grep` n'est pas dans apt. Le binaire Linux s'appelle `sg`. Le protocole appelle `ast-grep`.
+
+Vérifier :
 
 ```bash
-cd /chemin/vers/votre/projet
-./launch_dev.sh
+sqlite3 --version
+rg --version
+ast-grep --version
 ```
 
-→ Ouvre deux terminaux :
-- Backend FastAPI avec `--reload` (port 8000)
-- Frontend avec `npm run dev`
+Les trois commandes doivent répondre. Sinon ne pas lancer de projet.
 
-### Déploiement test / production
+La base n'est pas créée ici. Elle l'est au lancement, depuis `formats/registry.sql`. Tables : `requests`, `files`, `symbols`, `locks`. `registry.sqlite` et ses journaux sont ignorés par git, à la racine et dans chaque projet créé.
+
+## Nouveau projet
 
 ```bash
-cd /chemin/vers/votre/projet
-./launch_test_prod.sh
+bash scripts/new-project.sh
 ```
 
-Étapes effectuées :
-1. Génère la distribution frontend (`npm run build`)
-2. Démarre Uvicorn en arrière-plan
-3. Recharge Nginx avec la configuration du projet
+`gh` est requis à côté de `git`, `sqlite3`, `rg` et `python3`. Le login vient de `gh api user --jq .login`. Un échec arrête le script.
 
-L’application est alors accessible via le port configuré dans `nginx.conf` (généralement 80 ou 443).
+Le dépôt existe lorsque `gh repo view <login>/<name> --json name` se termine par 0. Il est absent lorsque cette commande échoue et que la sortie contient `Could not resolve`. Tout autre échec arrête le script.
 
-### Gestion GitHub
+La question du nom et la question du dossier existant restent. La racine du protocole quitte avec le code 1 avant tout clone ou toute création de dépôt.
+
+Si `projects/<name>` est absent et que le dépôt existe : `gh repo clone <login>/<name>` dans ce dossier. `AGENTS.md`, chaque fichier de `formats/` et `scripts/index-symbols.py` sont écrits depuis la racine du protocole, même s'ils existent déjà. Les autres entrées de la racine vont dans `src/<name>`. Les autres fichiers de `scripts/`, sauf `index-symbols.py`, vont dans `src/scripts/<name>`. Puis l'index.
+
+Si `projects/<name>` est absent et que le dépôt est absent : `mkdir` de `projects`, puis `(cd projects && gh repo create <name> --private --clone)`, puis les mêmes fichiers du protocole. Ce clone vide n'a rien à déplacer et n'est pas indexé.
+
+Si le dossier existe déjà : pas de clone. Les mêmes fichiers du protocole sont écrits, les entrées étrangères sont déplacées, puis l'index. Dépôt absent et `origin` absent : `gh repo create <name> --private --source <dest> --remote origin`. `origin` déjà présent : la même commande sans `--remote`. Jamais `--push`, jamais `--public`. Dépôt présent et `origin` absent : l'URL vient de `gh repo view <login>/<name> --json url --jq .url`, puis `git remote add origin <url>.git`. `origin` présent : on le laisse. `git init` seulement si `.git` manque.
+
+Ne bougent jamais : `.git`, `.gitignore`, `AGENTS.md`, `formats`, `rules`, `requests`, `configs`, `agents`, `modules`, `src`, `scripts`, `registry.sqlite`, `registry.sqlite-journal`, `registry.sqlite-wal`, `registry.sqlite-shm`. Si `src/<name>` ou `src/scripts/<name>` existe déjà, le script affiche `left in place: <name>` et passe. Un chemin suivi par git est déplacé avec `git mv`. Sinon `mv`. Le déplacement a lieu après l'échafaudage et avant l'index. La racine du protocole quitte avec le code 1 avant `gh` : rien n'y est déplacé.
+
+Un fichier de protocole déjà présent donne `updated`. Un fichier absent donne `installed`. Les textes sont `AGENTS.md installed`, `AGENTS.md updated`, `formats installed`, `formats updated`, `index-symbols.py installed`, `index-symbols.py updated`. `formats updated` dès qu'un fichier de `formats/` était déjà là. Les lignes manquantes `registry.sqlite`, `registry.sqlite-journal`, `registry.sqlite-wal` et `registry.sqlite-shm` sont ajoutées à `.gitignore`. Le reste de ce fichier reste. `.gitignore` n'est pas déplacé.
+
+Le script se termine par `Ready:`, la destination, et `Repository: <login>/<name>`.
+
+Si le dossier existe, ou si un chemin existant est donné, les fichiers sont indexés dans `registry.sqlite` et des `MODULE.md` manquants sont ajoutés.
+
+La racine de ce dépôt, ouverte dans Herdr, répond `protocol repo` et n'écrit rien.
+
+## Mise à jour
 
 ```bash
-# Mettre à jour le code local depuis GitHub
-./github_pull.sh
-
-# Committer et pousser les modifications
-./github_push.sh "Message de commit descriptif"
+bash scripts/update.sh
 ```
 
-### Arrêt propre
+`scripts/update.sh` prend pour racine le parent de `scripts/`. Sans `origin`, il quitte avec le code 1 et affiche `No origin.`. HEAD détaché : il quitte avec le code 1 et affiche `Detached head.`. Le pull est `git pull --ff-only origin` suivi de la branche courante. Aucun amont n'est requis. Un pull qui se termine avec le code 0 continue, même si un autre chemin du protocole est sale. Si le pull échoue et qu'un chemin du protocole reste, le script quitte avec le code 1, affiche `Dirty tree.`, puis liste ces chemins, un par ligne. Si le pull échoue et qu'aucun chemin du protocole ne reste, il affiche l'erreur de git et quitte avec le code 1. `.Trash-1000/` et `.idea/` ne rendent pas l'arbre sale et n'entrent pas dans le commit. Les chemins sous `projects/` ne rendent pas la racine sale. Il ne clone rien et ne déplace aucun fichier étranger.
 
-```bash
-sudo ./api_stop.sh
-```
+Chaque dossier de `projects/*` reçoit la même écriture : `AGENTS.md`, les fichiers de `formats/`, `scripts/index-symbols.py`, le schéma `formats/registry.sql`, et les lignes manquantes de `.gitignore`.
 
-Arrête Uvicorn et recharge Nginx (utile pour page de maintenance).
+Le script pose ensuite deux questions. Il répète chacune jusqu'à `Oui`, `oui`, `O`, `o`, `Non`, `non`, `N` ou `n`.
 
-## Scripts principaux
+`Mise a jour des readmes ? Oui/Non :` — Oui copie le `README.md` de la racine sur chaque `projects/<name>/README.md`. Non passe à la question suivante.
 
-| Script                     | Rôle principal |
-|----------------------------|--------------------------------------------------------------|
-| `create_project.sh`        | Crée un nouveau projet complet |
-| `install_softwares.sh`     | Installe tous les logiciels système (une fois) |
-| `launch_dev.sh`            | Mode développement (2 terminaux) |
-| `launch_test_prod.sh`      | Déploiement production |
-| `api_dev.sh`               | Backend dev avec reload |
-| `api_start.sh`             | Backend production |
-| `api_stop.sh`              | Arrêt propre du backend |
-| `npm_dev.sh`               | Frontend dev server |
-| `npm_dist_generate.sh`     | Génère la build production |
-| `github_pull.sh`           | Pull + rebase + stash intelligent |
-| `github_push.sh`           | Commit + push avec synchronisation |
-| `nginx_reload.sh`          | Applique nginx.conf du projet |
+`Commit et push vers le depot ? Oui/Non :` — Oui demande `Commentaire : `. Un commentaire vide quitte avec le code 1. Pour la racine et chaque `projects/*` qui contient `.git`, un arbre sale reçoit un commit avec ce message, puis `git push`. La racine fait `git add -A` sans `projects/`, `.Trash-1000/` ni `.idea/`. Chaque projet fait `git add -A`. Un dépôt propre est ignoré. Un push qui échoue quitte avec le code 1. Non quitte avec le code 0.
 
-## Configuration
+`scripts/check.sh` ferme, avant de supprimer son dossier temporaire, chaque workspace Herdr dont `checkout_path` ou `repo_root` est dans ce dossier. Il ne ferme aucun autre workspace. Le test smoke retire toujours le worktree lié avec `herdr worktree remove`, puis vérifie qu'aucun workspace du dossier temporaire ne reste.
 
-- `install_softwares.ini` : paramètres globaux (chemins, ports, mots de passe…)
-- `github.ini` (créé automatiquement) : token GitHub, credentials PostgreSQL…
+Règles du projet : `projects/<name>/rules/AGENT-<n>-<NAME>.md`. Lues après `AGENTS.md`, par numéro. `AGENTS.md` ne se modifie pas. Dossier vide = pas de règle en plus.
 
-## Contribution & Personnalisation
+## Après un prompt
 
-Le kit est conçu pour être étendu :
-- Ajouter des paquets dans `requirements.txt`
-- Modifier `nginx.conf` pour HTTPS, domaines, etc.
-- Adapter les scripts pour d’autres stacks (Next.js, Nuxt…)
+1. Hash dans `registry.sqlite`. Déjà vu → pointeur, stop.
+2. Depth 1 = module, depth 2 = plan puis impl. Découpage par domaine indépendant : graphisme, base de données, UX, core, ou un autre domaine sans chemin commun. Plusieurs modules d'un domaine partent ensemble. Un module = un agent plan, puis un agent impl. Le temps est celui du module le plus lent.
+3. `configs/plan-vue.md`, `configs/impl-vue.md`. Source 80 lignes, une fois.
+4. Worktree Herdr d'abord, `--no-focus`. Plan : `--base main`. Impl : `--base mod-<module>-plan`, après le commit du plan. Ids lus dans le JSON : `result.workspace.workspace_id`, `result.tab.tab_id`, `result.root_pane.pane_id`, `result.worktree.path`.
+5. Extraits via `symbols` du module, sinon `rg`. Après `done`, `python3 scripts/index-symbols.py <module>` : un `ast-grep` par motif, les fichiers inchangés sont sautés. Un `.vue` est lu par son bloc `<script>`, en TypeScript par défaut.
+6. Verrous dans `locks`, 900 s. Chemin déjà pris : la tâche reste `open`, les autres modules partent. Prompts de plan lancés ensemble, un processus chacun : `herdr agent prompt <name> <text> --wait --until idle --until done --timeout 600000 &`. `wait -n` au prochain agent terminé. Ce plan est fermé, puis son impl part tout de suite, sans attendre les autres plans.
+7. Après le commit du plan ou de l'impl, `herdr worktree remove --workspace <id> --force` ferme le workspace, l'onglet et le panneau ouverts pour cet agent. La branche git reste. L'onglet de l'orchestrateur reste ouvert. Workspace déjà absent : `git worktree remove` sur le checkout. Deux fails ou path hors owns → la même fermeture, puis un agent neuf. Fusion : `git merge --no-ff mod-<module>` dans le projet, après la fermeture du checkout d'impl. Cette branche reste et contient les commits du plan.
